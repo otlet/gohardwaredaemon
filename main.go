@@ -122,6 +122,12 @@ func collect() {
 	memory, _ := ghw.Memory()
 	block, _ := ghw.Block()
 	net, _ := ghw.Network()
-	json = "{[" + cpu.JSONString(false) + "," + memory.JSONString(false) + "," + block.JSONString(false) + "," + net.JSONString(false) + "]}"
+	json = fmt.Sprintf(
+		"{\"cpu\":%v,\"memory\":%v,\"disk\":%v,\"network\":%v}",
+		cpu.JSONString(false),
+		memory.JSONString(false),
+		block.JSONString(false),
+		net.JSONString(false),
+	)
 	fmt.Println(json)
 }
