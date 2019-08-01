@@ -32,3 +32,7 @@
 [[constraint]]
   name = "github.com/jedib0t/go-pretty"
   version = "4.2.1"
+
+[[constraint]]
+  name = "github.com/sevlyar/go-daemon"
+  version = "0.1.5"

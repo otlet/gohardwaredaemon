@@ -1,17 +1,30 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"log"
+	"os"
+	"syscall"
+	"time"
+
 	"github.com/jaypipes/ghw"
 	"github.com/jedib0t/go-pretty/table"
-	"os"
+	"github.com/sevlyar/go-daemon"
 )
 
 var (
-	tab  = table.NewWriter()
-	json = ""
+	tab        = table.NewWriter()
+	json       = ""
+	fileExport = flag.String("f", "", "Avaliable format: CSV, JSON, std")
+	daemonFlag = flag.Bool("d", false, "a bool")
+	signal     = flag.String("s", "", `Send signal to the daemon:
+  quit — graceful shutdown
+  stop — fast shutdown
+  reload — reloading the configuration file`)
 )
 
+// Collector for memory information
 func memory() {
 	memory, err := ghw.Memory()
 	if err != nil {
@@ -24,6 +37,7 @@ func memory() {
 	}
 }
 
+// Collector for processor information
 func cpu() {
 	cpu, err := ghw.CPU()
 	if err != nil {
@@ -42,6 +56,7 @@ func cpu() {
 	}
 }
 
+// Collector for persistent memory information
 func blockStrorage() {
 	block, err := ghw.Block()
 	if err != nil {
@@ -67,6 +82,7 @@ func blockStrorage() {
 	}
 }
 
+// Collector for network information
 func network() {
 	net, err := ghw.Network()
 	if err != nil {
@@ -85,12 +101,93 @@ func network() {
 	}
 }
 
-func main() {
+func daemonMode() {
+	daemon.AddCommand(daemon.StringFlag(signal, "quit"), syscall.SIGQUIT, termHandler)
+	daemon.AddCommand(daemon.StringFlag(signal, "stop"), syscall.SIGTERM, termHandler)
+	daemon.AddCommand(daemon.StringFlag(signal, "reload"), syscall.SIGHUP, reloadHandler)
+
+	cntxt := &daemon.Context{
+		PidFileName: "gohardwaredaemon.pid",
+		PidFilePerm: 0644,
+		LogFileName: "gohardwaredaemon.log",
+		LogFilePerm: 0640,
+		WorkDir:     "./",
+		Umask:       027,
+		Args:        []string{"goHardwareDaemon"},
+	}
+
+	if len(daemon.ActiveFlags()) > 0 {
+		d, err := cntxt.Search()
+		if err != nil {
+			log.Fatalf("Unable send signal to the daemon: %s", err.Error())
+		}
+		daemon.SendCommands(d)
+		return
+	}
+
+	d, err := cntxt.Reborn()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	if d != nil {
+		return
+	}
+	defer cntxt.Release()
+
+	log.Println("- - - - - - - - - - - - - - -")
+	log.Println("daemon started")
+
+	go worker()
+
+	err = daemon.ServeSignals()
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+	}
+
+	log.Println("daemon terminated")
+}
+
+var (
+	stop = make(chan struct{})
+	done = make(chan struct{})
+)
+
+func worker() {
+LOOP:
+	for {
+		render()
+		time.Sleep(time.Hour)
+		select {
+		case <-stop:
+			break LOOP
+		default:
+		}
+	}
+	done <- struct{}{}
+}
+
+func termHandler(sig os.Signal) error {
+	log.Println("terminating...")
+	stop <- struct{}{}
+	if sig == syscall.SIGQUIT {
+		<-done
+	}
+	return daemon.ErrStop
+}
+
+func reloadHandler(sig os.Signal) error {
+	log.Println("configuration reloaded")
+	return nil
+}
+
+// Render function, where we launch functions with hardware information
+// collector.
+func render() {
+	err := os.Setenv("GHW_DISABLE_WARNINGS", "1")
 	tab.SetOutputMirror(os.Stdout)
 	tab.AppendHeader(table.Row{"TYPE", "ID", "DESCRIPTION", "VALUE"})
 
-	if len(os.Args) > 1 {
-		err := os.Setenv("GHW_DISABLE_WARNINGS", "1")
+	if *fileExport != "" {
 
 		memory()
 		cpu()
@@ -98,26 +195,30 @@ func main() {
 		network()
 
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			os.Exit(2)
 		}
 
-		if os.Args[1] == "csv" {
+		if *fileExport == "csv" {
 			tab.RenderCSV()
-		} else if os.Args[1] == "json" {
-			collect()
+		} else if *fileExport == "json" {
+			fmt.Println(generateJSON())
+		} else if *fileExport == "std" {
+			memory()
+			cpu()
+			blockStrorage()
+			network()
+			tab.Render()
+		} else {
+			fmt.Println("Accepted formats: json, csv, std")
 		}
 	} else {
-		memory()
-		cpu()
-		blockStrorage()
-		network()
-
-		tab.Render()
+		log.Println(generateJSON())
 	}
 }
 
-func collect() {
+// Generate JSON file with informations
+func generateJSON() string {
 	cpu, _ := ghw.CPU()
 	memory, _ := ghw.Memory()
 	block, _ := ghw.Block()
@@ -129,5 +230,16 @@ func collect() {
 		block.JSONString(false),
 		net.JSONString(false),
 	)
-	fmt.Println(json)
+	return json
+}
+
+// Main function
+func main() {
+	flag.Parse()
+	if *daemonFlag {
+		daemonMode()
+	} else if *fileExport != "" {
+		render()
+	} else {
+	}
 }

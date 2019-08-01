@@ -69,6 +69,14 @@
   version = "v4.2.1"
 
 [[projects]]
+  branch = "master"
+  digest = "1:f433da6fbabb0bd1bd730fd340782015c644123d02eb78c20c69ce03352daad1"
+  name = "github.com/kardianos/osext"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "2bc1f35cddc0cc527b4bc3dce8578fc2a6c11384"
+
+[[projects]]
   digest = "1:0356f3312c9bd1cbeda81505b7fd437501d8e778ab66998ef69f00d7f9b3a0d7"
   name = "github.com/mattn/go-runewidth"
   packages = ["."]
@@ -101,6 +109,14 @@
   version = "v0.8.1"
 
 [[projects]]
+  digest = "1:1ad7be70615b095707f558f510013198d24e26f99f5319a38c2039de46576945"
+  name = "github.com/sevlyar/go-daemon"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "bf839693b97cb19a587b25649bbcb59ee16bdb2f"
+  version = "v0.1.5"
+
+[[projects]]
   digest = "1:549a140c6c3742fe0df432e860fbf636f71d7589ba1e75acdc33a36346010ddc"
   name = "go.mongodb.org/mongo-driver"
   packages = [
@@ -117,9 +133,12 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:1ed0196f0b3fcdc592c7deb8519aaa6176dae23c89cf2871d5d6a00874d50968"
+  digest = "1:afb5346f71acefc3da7ad800f952cb2bcdb762194b05304bbf54d7f9490e31c5"
   name = "golang.org/x/sys"
-  packages = ["windows"]
+  packages = [
+    "unix",
+    "windows",
+  ]
   pruneopts = "UT"
   revision = "04f50cda93cbb67f2afa353c52f342100e80e625"
 
@@ -145,6 +164,7 @@
   input-imports = [
     "github.com/jaypipes/ghw",
     "github.com/jedib0t/go-pretty/table",
+    "github.com/sevlyar/go-daemon",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
