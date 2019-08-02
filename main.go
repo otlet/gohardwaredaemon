@@ -17,11 +17,12 @@ var (
 	tab        = table.NewWriter()
 	json       = ""
 	fileExport = flag.String("f", "", "Avaliable format: CSV, JSON, std")
-	daemonFlag = flag.Bool("d", false, "a bool")
+	daemonFlag = flag.Bool("d", false, "Run in daemon mode")
 	signal     = flag.String("s", "", `Send signal to the daemon:
   quit — graceful shutdown
   stop — fast shutdown
-  reload — reloading the configuration file`)
+  reload — reloading the configuration file
+  REQUIRE -d (Daemon mode)`)
 )
 
 // Collector for memory information
@@ -188,7 +189,6 @@ func render() {
 	tab.AppendHeader(table.Row{"TYPE", "ID", "DESCRIPTION", "VALUE"})
 
 	if *fileExport != "" {
-
 		memory()
 		cpu()
 		blockStrorage()
@@ -199,22 +199,18 @@ func render() {
 			os.Exit(2)
 		}
 
-		if *fileExport == "csv" {
-			tab.RenderCSV()
-		} else if *fileExport == "json" {
+		switch *fileExport {
+		case "json":
 			fmt.Println(generateJSON())
-		} else if *fileExport == "std" {
-			memory()
-			cpu()
-			blockStrorage()
-			network()
+		case "csv":
+			tab.RenderCSV()
+		case "std":
 			tab.Render()
-		} else {
+		default:
 			fmt.Println("Accepted formats: json, csv, std")
 		}
-	} else {
-		log.Println(generateJSON())
 	}
+	log.Println(generateJSON())
 }
 
 // Generate JSON file with informations
@@ -241,5 +237,7 @@ func main() {
 	} else if *fileExport != "" {
 		render()
 	} else {
+		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
+		flag.PrintDefaults()
 	}
 }
