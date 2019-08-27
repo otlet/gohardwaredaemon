@@ -14,7 +14,7 @@ import (
 
 var (
 	hw         = hardware.Hardware{}
-	fileExport = flag.String("f", "", "Avaliable format: CSV, JSON, std")
+	fileExport = flag.String("f", "", "Available format: CSV, JSON, std")
 	daemonFlag = flag.Bool("d", false, "Run in daemon mode")
 	signal     = flag.String("s", "", `Send signal to the daemon:
   quit — graceful shutdown
